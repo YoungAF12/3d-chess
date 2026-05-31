@@ -18,6 +18,17 @@
 
     <div id="check-alert" class="hidden">ШАХ!</div>
 
+    <div id="promotion-modal" class="hidden">
+        <h3>Превращение пешки</h3>
+        <p>Выберите фигуру:</p>
+        <div class="promo-options">
+            <button onclick="promotePawn('q')">Ферзь</button>
+            <button onclick="promotePawn('r')">Ладья</button>
+            <button onclick="promotePawn('b')">Слон</button>
+            <button onclick="promotePawn('n')">Конь</button>
+        </div>
+    </div>
+
     <div id="game-over" class="hidden">
         <h2 id="end-title">Шах и мат!</h2>
         <h3 id="end-winner">Белые победили</h3>
