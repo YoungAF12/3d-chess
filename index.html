@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>3D Шахматы — Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Шахматы — Академический Проект</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,7 +21,7 @@
 
     <div id="promotion-modal" class="hidden">
         <h3>Превращение пешки</h3>
-        <p>Выберите фигуру:</p>
+        <p>Выберите фигуру для замены:</p>
         <div class="promo-options">
             <button onclick="promotePawn('q')">Ферзь</button>
             <button onclick="promotePawn('r')">Ладья</button>
@@ -33,11 +34,11 @@
         <h2 id="end-title">Шах и мат!</h2>
         <h3 id="end-winner">Белые победили</h3>
         <div class="stats">
-            <p>Всего ходов: <span id="stat-moves">0</span></p>
-            <p>Алмазных ходов 💎: <span id="stat-diamond">0</span></p>
-            <p>Длительность: <span id="stat-time">00:00</span></p>
+            <p>Всего совершенных ходов: <span id="stat-moves">0</span></p>
+            <p>Алмазных ходов выявлено 💎: <span id="stat-diamond">0</span></p>
+            <p>Общая длительность партии: <span id="stat-time">00:00</span></p>
         </div>
-        <button id="btn-restart" onclick="location.reload()">Играть снова</button>
+        <button id="btn-restart" onclick="location.reload()">Начать новую партию</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
