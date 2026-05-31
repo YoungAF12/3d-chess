@@ -7,16 +7,10 @@ body {
 }
 
 #ui {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    z-index: 10;
-    background: rgba(15, 15, 18, 0.9);
-    padding: 20px;
-    border: 1px solid #ffffff;
-    border-radius: 6px;
-    box-shadow: 0 0 25px rgba(255, 255, 255, 0.05);
-    color: #ffffff;
+    position: absolute; top: 20px; left: 20px; z-index: 10;
+    background: rgba(15, 15, 18, 0.9); padding: 20px;
+    border: 1px solid #ffffff; border-radius: 6px;
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.05); color: #ffffff;
 }
 
 h1 { margin: 0 0 10px 0; font-size: 22px; letter-spacing: 1px; }
@@ -32,7 +26,6 @@ button {
 button:hover { background: #2c2c35; border-color: #6c6c73; }
 button.active { background: #ffffff; color: #0c0c0e; border-color: #ffffff; }
 
-/* Уведомление о Шахе */
 #check-alert {
     position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
     font-size: 48px; font-weight: bold; color: #ff3333;
@@ -41,7 +34,6 @@ button.active { background: #ffffff; color: #0c0c0e; border-color: #ffffff; }
     animation: pulse 1s infinite alternate;
 }
 
-/* Окно конца игры */
 #game-over {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     background: rgba(10, 10, 12, 0.95); padding: 40px;
@@ -54,6 +46,19 @@ button.active { background: #ffffff; color: #0c0c0e; border-color: #ffffff; }
 .stats { text-align: left; background: #1a1a1f; padding: 15px; border-radius: 8px; margin-bottom: 25px; }
 .stats p { margin: 10px 0; font-size: 16px; }
 #game-over button { width: 100%; font-size: 18px; padding: 15px; background: #fff; color: #000; }
+
+/* Окно превращения пешки */
+#promotion-modal {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(10, 10, 12, 0.95); padding: 30px;
+    border: 2px solid #00ffcc; border-radius: 12px;
+    text-align: center; color: #fff; z-index: 40;
+    box-shadow: 0 0 40px rgba(0, 255, 204, 0.4);
+}
+#promotion-modal h3 { margin-top: 0; font-size: 24px; color: #00ffcc; }
+.promo-options { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
+.promo-options button { padding: 10px 15px; font-size: 16px; background: #1c1c21; border-color: #00ffcc; color: #00ffcc;}
+.promo-options button:hover { background: #00ffcc; color: #000; }
 
 .hidden { display: none !important; }
 
