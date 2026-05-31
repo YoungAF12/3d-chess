@@ -38,6 +38,7 @@ let gameActive = true;
 let totalMoves = 0;
 let diamondMovesCount = 0;
 let startTime = Date.now();
+let pendingPromotion = null; // Для хранения данных о пешке
 const pieceWeight = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 900 };
 
 const boardGroup = new THREE.Group();
@@ -190,9 +191,8 @@ function isKingInCheck(color, checkGrid) {
             }
         }
     }
-    if (kx === -1) return false; // Если короля нет (техническая защита)
+    if (kx === -1) return false;
 
-    // Проверяем, может ли противник атаковать клетку короля
     const enemyColor = color === 1 ? 2 : 1;
     for (let x = 0; x < 8; x++) {
         for (let z = 0; z < 8; z++) {
@@ -205,7 +205,6 @@ function isKingInCheck(color, checkGrid) {
     return false;
 }
 
-// Фильтруем ходы, оставляя только те, которые не подставляют своего короля
 function getLegalMoves(x, z) {
     const pseudoMoves = getPseudoMoves(x, z, grid);
     const validMoves = [];
@@ -242,13 +241,12 @@ function checkGameState(color) {
 
 // --- УПРАВЛЕНИЕ И ХОДЫ ---
 function executeMove(pieceMesh, targetX, targetZ) {
-    if (!gameActive) return;
+    if (!gameActive || pendingPromotion) return;
 
     const startX = pieceMesh.userData.x;
     const startZ = pieceMesh.userData.z;
     const targetCell = grid[targetX][targetZ];
 
-    // Анализ "Алмазного хода" (берем фигуру бОльшей стоимости)
     if (targetCell && pieceWeight[targetCell.type] > pieceWeight[pieceMesh.userData.type]) {
         diamondMovesCount++;
     }
@@ -263,17 +261,57 @@ function executeMove(pieceMesh, targetX, targetZ) {
     pieceMesh.position.set(targetX + offset, 0.1, targetZ + offset);
     pieceMesh.userData.x = targetX; pieceMesh.userData.z = targetZ;
     
-    totalMoves++;
     clearHighlights();
     pieceMesh.children.forEach(child => child.material = pieceMesh.userData.color === 1 ? pieceWhiteMat : pieceBlackMat);
     selectedPiece = null;
 
+    // Проверка на превращение пешки
+    if (pieceMesh.userData.type === 'p' && (targetZ === 7 || targetZ === 0)) {
+        pendingPromotion = { mesh: pieceMesh, x: targetX, z: targetZ, color: currentPlayer };
+        
+        if (gameMode === 'pvp' || currentPlayer === 1) {
+            document.getElementById('promotion-modal').classList.remove('hidden');
+            return; // Ждем выбора игрока
+        } else {
+            promotePawn('q'); // ИИ автоматически выбирает ферзя
+            return;
+        }
+    }
+
+    finalizeTurn();
+}
+
+// Вызывается кнопками из HTML
+window.promotePawn = function(newType) {
+    if (!pendingPromotion) return;
+    
+    document.getElementById('promotion-modal').classList.add('hidden');
+    const { mesh, x, z, color } = pendingPromotion;
+    
+    // Удаляем пешку
+    boardGroup.remove(mesh);
+    pieces.splice(pieces.indexOf(mesh), 1);
+    
+    // Создаем новую фигуру
+    const mat = color === 1 ? pieceWhiteMat : pieceBlackMat;
+    const newMesh = buildChessPiece(newType, mat);
+    newMesh.position.set(x + offset, 0.1, z + offset);
+    newMesh.userData = { x, z, type: newType, color };
+    
+    boardGroup.add(newMesh);
+    pieces.push(newMesh);
+    grid[x][z] = { type: newType, color, mesh: newMesh };
+    
+    pendingPromotion = null;
+    finalizeTurn();
+};
+
+function finalizeTurn() {
+    totalMoves++;
     currentPlayer = currentPlayer === 1 ? 2 : 1;
     
-    // Проверка состояния игры для следующего игрока
     checkGameState(currentPlayer);
     if (!gameActive) {
-        // Если мат, и это был последний ход, считаем его алмазным для красоты статистики
         if (isKingInCheck(currentPlayer, grid)) diamondMovesCount++; 
         return;
     }
@@ -288,7 +326,7 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 window.addEventListener('mousedown', (e) => {
-    if (!gameActive || (gameMode === 'pvc' && currentPlayer === 2)) return;
+    if (!gameActive || pendingPromotion || (gameMode === 'pvc' && currentPlayer === 2)) return;
 
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
@@ -322,7 +360,7 @@ function clearHighlights() {
 
 // --- ИИ ---
 function makePCMove() {
-    if (!gameActive) return;
+    if (!gameActive || pendingPromotion) return;
     let aiOptions = [];
     pieces.filter(p => p.userData.color === 2).forEach(mesh => {
         getLegalMoves(mesh.userData.x, mesh.userData.z).forEach(m => {
