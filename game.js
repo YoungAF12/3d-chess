@@ -1,3 +1,4 @@
+// --- ИНИЦИАЛИЗАЦИЯ СЦЕНЫ И КОНВЕЙЕРА РЕНДЕРИНГА ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0c0c0e);
 scene.fog = new THREE.Fog(0x0c0c0e, 12, 35);
@@ -10,15 +11,25 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// Настройка источников освещения
 const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
 dirLight.position.set(5, 18, 2);
 scene.add(dirLight);
 scene.add(new THREE.AmbientLight(0x555566));
 
-// --- МАТЕРИАЛЫ ---
-const vertexShader = `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+// --- ОПРЕДЕЛЕНИЕ ШЕЙДЕРОВ И МАТЕРИАЛОВ ---
+const vertexShader = `
+    varying vec2 vUv; 
+    void main() { 
+        vUv = uv; 
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); 
+    }
+`;
+
 const fragmentShader = `
-    uniform float time; uniform vec3 baseColor; varying vec2 vUv;
+    uniform float time; 
+    uniform vec3 baseColor; 
+    varying vec2 vUv;
     void main() {
         float edge = smoothstep(0.0, 0.12, vUv.x) * smoothstep(1.0, 0.88, vUv.x) * smoothstep(0.0, 0.12, vUv.y) * smoothstep(1.0, 0.88, vUv.y);
         vec3 glow = vec3(0.1, 0.12, 0.18) * (sin(time * 1.5) * 0.3 + 0.7) * (1.0 - edge);
@@ -26,19 +37,24 @@ const fragmentShader = `
     }
 `;
 
-const blackTileMat = new THREE.ShaderMaterial({ uniforms: { time: { value: 0 }, baseColor: { value: new THREE.Color(0x16161a) } }, vertexShader, fragmentShader });
+const blackTileMat = new THREE.ShaderMaterial({ 
+    uniforms: { time: { value: 0 }, baseColor: { value: new THREE.Color(0x16161a) } }, 
+    vertexShader, 
+    fragmentShader 
+});
+
 const whiteTileMat = new THREE.MeshPhongMaterial({ color: 0xe2e2e9, shininess: 40 });
 const pieceWhiteMat = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 70 });
 const pieceBlackMat = new THREE.MeshPhongMaterial({ color: 0x222226, shininess: 70 });
 const selectedMat = new THREE.MeshPhongMaterial({ color: 0x00ffcc, emissive: 0x003322 });
 const highlightMat = new THREE.MeshPhongMaterial({ color: 0x00ff66, emissive: 0x004411 });
 
-// --- СТАТИСТИКА И СОСТОЯНИЕ ---
+// --- ПЕРЕМЕННЫЕ СОСТОЯНИЯ И СИСТЕМЫ ОЦЕНКИ ---
 let gameActive = true;
 let totalMoves = 0;
 let diamondMovesCount = 0;
 let startTime = Date.now();
-let pendingPromotion = null; // Для хранения данных о пешке
+let pendingPromotion = null; 
 const pieceWeight = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 900 };
 
 const boardGroup = new THREE.Group();
@@ -53,11 +69,12 @@ let gameMode = 'pvp';
 let selectedPiece = null;
 let highlightedTiles = [];
 
-// --- ГЕНЕРАЦИЯ ---
+// --- МОДУЛЬ ПРОЦЕДУРНОЙ ГЕНЕРАЦИИ ГЕОМЕТРИИ ---
 function buildChessPiece(type, mat) {
     const group = new THREE.Group();
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.08, 16), mat);
-    base.position.y = 0.04; group.add(base);
+    base.position.y = 0.04; 
+    group.add(base);
 
     if (type === 'p') {
         const body = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.4, 16), mat); body.position.y = 0.28;
@@ -129,7 +146,7 @@ function spawnPiece(x, z, type, color) {
 }
 initGame();
 
-// --- ШАХМАТНЫЙ ДВИЖОК: ПСЕВДОХОДЫ ---
+// --- АЛГОРИТМ ГЕНЕРАЦИИ ПСЕВДОЛЕГАЛЬНЫХ ХОДОВ ---
 function getPseudoMoves(x, z, checkGrid, ignoreColor = null) {
     const moves = [];
     const p = checkGrid[x][z];
@@ -160,7 +177,7 @@ function getPseudoMoves(x, z, checkGrid, ignoreColor = null) {
         const startRow = color === 1 ? 1 : 6;
         if (z + dir >= 0 && z + dir < 8 && !checkGrid[x][z + dir]) {
             moves.push({ x, z: z + dir });
-            if (z === startRow && !checkGrid[x][z + dir * 2]) moves.push({ x, z: z + dir * 2 });
+            if (z === startRow && !checkGrid[x][z + dir * 2] && !checkGrid[x][z + dir]) moves.push({ x, z: z + dir * 2 });
         }
         [-1, 1].forEach(dx => {
             if (x + dx >= 0 && x + dx < 8 && z + dir >= 0 && z + dir < 8) {
@@ -177,7 +194,7 @@ function getPseudoMoves(x, z, checkGrid, ignoreColor = null) {
     return moves;
 }
 
-// --- ЛОГИКА ШАХА И МАТА ---
+// --- СИСТЕМЫ ВАЛИДАЦИИ, МАТРИЧНЫХ КЛОНОВ И АНАЛИЗА УГРОЗ ---
 function cloneGrid() {
     return grid.map(r => r.map(c => c ? { type: c.type, color: c.color } : null));
 }
@@ -239,7 +256,7 @@ function checkGameState(color) {
     else document.getElementById('check-alert').classList.add('hidden');
 }
 
-// --- УПРАВЛЕНИЕ И ХОДЫ ---
+// --- ОБРАБОТКА ДВИЖЕНИЯ И ТРАНСФОРМАЦИЯ ПЕШКИ ---
 function executeMove(pieceMesh, targetX, targetZ) {
     if (!gameActive || pendingPromotion) return;
 
@@ -247,6 +264,7 @@ function executeMove(pieceMesh, targetX, targetZ) {
     const startZ = pieceMesh.userData.z;
     const targetCell = grid[targetX][targetZ];
 
+    // Оценка ценности взятия для "алмазного хода"
     if (targetCell && pieceWeight[targetCell.type] > pieceWeight[pieceMesh.userData.type]) {
         diamondMovesCount++;
     }
@@ -265,15 +283,15 @@ function executeMove(pieceMesh, targetX, targetZ) {
     pieceMesh.children.forEach(child => child.material = pieceMesh.userData.color === 1 ? pieceWhiteMat : pieceBlackMat);
     selectedPiece = null;
 
-    // Проверка на превращение пешки
+    // Проверка условий превращения пешки (крайние горизонтали)
     if (pieceMesh.userData.type === 'p' && (targetZ === 7 || targetZ === 0)) {
         pendingPromotion = { mesh: pieceMesh, x: targetX, z: targetZ, color: currentPlayer };
         
         if (gameMode === 'pvp' || currentPlayer === 1) {
             document.getElementById('promotion-modal').classList.remove('hidden');
-            return; // Ждем выбора игрока
+            return; // Прерываем завершение хода до выбора игрока
         } else {
-            promotePawn('q'); // ИИ автоматически выбирает ферзя
+            promotePawn('q'); // ИИ по умолчанию производит автовыбор ферзя
             return;
         }
     }
@@ -281,18 +299,17 @@ function executeMove(pieceMesh, targetX, targetZ) {
     finalizeTurn();
 }
 
-// Вызывается кнопками из HTML
 window.promotePawn = function(newType) {
     if (!pendingPromotion) return;
     
     document.getElementById('promotion-modal').classList.add('hidden');
     const { mesh, x, z, color } = pendingPromotion;
     
-    // Удаляем пешку
+    // Удаление меша пешки со сцены
     boardGroup.remove(mesh);
     pieces.splice(pieces.indexOf(mesh), 1);
     
-    // Создаем новую фигуру
+    // Создание новой сгенерированной фигуры на той же позиции
     const mat = color === 1 ? pieceWhiteMat : pieceBlackMat;
     const newMesh = buildChessPiece(newType, mat);
     newMesh.position.set(x + offset, 0.1, z + offset);
@@ -322,13 +339,16 @@ function finalizeTurn() {
     if (gameMode === 'pvc' && currentPlayer === 2) setTimeout(makePCMove, 1000);
 }
 
+// --- СИСТЕМА RAYCASTING (ОБРАБОТКА НАЖАТИЙ) ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 window.addEventListener('mousedown', (e) => {
     if (!gameActive || pendingPromotion || (gameMode === 'pvc' && currentPlayer === 2)) return;
 
-    mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1; 
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(boardGroup.children, true);
     if (intersects.length === 0) return;
@@ -358,7 +378,7 @@ function clearHighlights() {
     highlightedTiles = [];
 }
 
-// --- ИИ ---
+// --- МОДУЛЬ ИСКУССТВЕННОГО ИНТЕЛЛЕКТА (ОЦЕНКА ВЕСОВ) ---
 function makePCMove() {
     if (!gameActive || pendingPromotion) return;
     let aiOptions = [];
@@ -378,7 +398,7 @@ function makePCMove() {
     }
 }
 
-// --- ИНТЕРФЕЙС И ОКОНЧАНИЕ ИГРЫ ---
+// --- ИНТЕРФЕЙС, ТАЙМЕРЫ И ФИКСАЦИЯ ИСХОДОВ ---
 window.setMode = function(mode) {
     gameMode = mode;
     document.getElementById('btn-pvp').classList.toggle('active', mode === 'pvp');
@@ -417,6 +437,7 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// --- ЦИКЛ РЕНДЕРИНГА И ЛИНЕЙНОЙ ИНТЕРПОЛЯЦИИ ---
 const clock = new THREE.Clock();
 function animate() {
     requestAnimationFrame(animate);
