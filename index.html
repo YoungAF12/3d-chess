@@ -3,44 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Шахматы — Академический Проект</title>
+    <title>3D Шахматы — Сетевая Версия</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="ui">
-        <h1>3D Шахматы</h1>
-        <div id="status">Ход: Белые</div>
-        <div id="timer">Время: 00:00</div>
-        <div class="controls">
-            <button id="btn-pvp" class="active" onclick="setMode('pvp')">Игрок vs Игрок</button>
-            <button id="btn-pvc" onclick="setMode('pvc')">Игрок vs ПК</button>
+    <div id="main-menu">
+        <h1 class="game-title">3D ШАХМАТЫ</h1>
+        
+        <div id="menu-base">
+            <button class="menu-btn" onclick="showModeSelection()">ИГРАТЬ</button>
+        </div>
+        
+        <div id="mode-selection" class="hidden">
+            <button class="menu-btn" onclick="initLocalGame('pvc')">Игра против ПК</button>
+            <button class="menu-btn" onclick="initLocalGame('pvp')">Локально (1 экран)</button>
+            <button class="menu-btn" onclick="showNetworkMenu()">Сетевая игра</button>
+            <button class="menu-btn back-btn" onclick="goBack('menu-base')">Назад</button>
+        </div>
+
+        <div id="network-menu" class="hidden">
+            <button class="menu-btn" onclick="createNetworkRoom()">Создать комнату</button>
+            <div class="join-box">
+                <input type="text" id="room-code-input" placeholder="Введите код">
+                <button class="menu-btn" onclick="joinNetworkRoom()">Войти</button>
+            </div>
+            <p id="network-status" style="color: #ffcc00; margin-top: 15px; font-weight: bold;"></p>
+            <button class="menu-btn back-btn" onclick="goBack('mode-selection')">Назад</button>
         </div>
     </div>
 
-    <div id="check-alert" class="hidden">ШАХ!</div>
+    <div id="game-ui" class="hidden">
+        <div id="ui">
+            <h1 style="margin: 0 0 10px 0; font-size: 22px;">3D Шахматы</h1>
+            <div id="status">Ход: Белые</div>
+            <div id="timer">Время: 00:00</div>
+            <div id="room-display" class="hidden" style="color: #00ffcc; font-weight: bold; margin-bottom: 10px;"></div>
+        </div>
 
-    <div id="promotion-modal" class="hidden">
-        <h3>Превращение пешки</h3>
-        <p>Выберите фигуру для замены:</p>
-        <div class="promo-options">
-            <button onclick="promotePawn('q')">Ферзь</button>
-            <button onclick="promotePawn('r')">Ладья</button>
-            <button onclick="promotePawn('b')">Слон</button>
-            <button onclick="promotePawn('n')">Конь</button>
+        <div id="check-alert" class="hidden">ШАХ!</div>
+
+        <div id="promotion-modal" class="hidden">
+            <h3>Превращение пешки</h3>
+            <div class="promo-options">
+                <button onclick="sendPromotion('q')">Ферзь</button>
+                <button onclick="sendPromotion('r')">Ладья</button>
+                <button onclick="sendPromotion('b')">Слон</button>
+                <button onclick="sendPromotion('n')">Конь</button>
+            </div>
+        </div>
+
+        <div id="game-over" class="hidden">
+            <h2 id="end-title">Шах и мат!</h2>
+            <h3 id="end-winner">Победа</h3>
+            <div class="stats">
+                <p>Всего ходов: <span id="stat-moves">0</span></p>
+                <p>Алмазных ходов 💎: <span id="stat-diamond">0</span></p>
+                <p>Длительность: <span id="stat-time">00:00</span></p>
+            </div>
+            <button id="btn-restart" onclick="location.reload()">В главное меню</button>
         </div>
     </div>
 
-    <div id="game-over" class="hidden">
-        <h2 id="end-title">Шах и мат!</h2>
-        <h3 id="end-winner">Белые победили</h3>
-        <div class="stats">
-            <p>Всего совершенных ходов: <span id="stat-moves">0</span></p>
-            <p>Алмазных ходов выявлено 💎: <span id="stat-diamond">0</span></p>
-            <p>Общая длительность партии: <span id="stat-time">00:00</span></p>
-        </div>
-        <button id="btn-restart" onclick="location.reload()">Начать новую партию</button>
-    </div>
-
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="game.js"></script>
 </body>
